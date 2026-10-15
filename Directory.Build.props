@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    Settings shared by every project in the repository. MSBuild picks this file up automatically
+    for any project in this folder or below, so individual .csproj files stay short.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>
