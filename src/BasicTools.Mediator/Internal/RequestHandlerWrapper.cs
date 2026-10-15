@@ -22,13 +22,13 @@ namespace BasicTools.Mediator.Internal;
 /// </remarks>
 internal abstract class RequestHandlerWrapper<TResult>
 {
-    private static readonly ConcurrentDictionary<Type, RequestHandlerWrapper<TResult>> Cache = new();
+    private static readonly ConcurrentDictionary<Type, RequestHandlerWrapper<TResult>> _cache = new();
 
     /// <summary>Runs the request through its pipeline behaviors and handler.</summary>
     public abstract Task<TResult> Handle(IRequest<TResult> request, IServiceProvider services, CancellationToken cancellationToken);
 
     /// <summary>Returns the cached wrapper for <paramref name="requestType"/>, creating it on first use.</summary>
-    public static RequestHandlerWrapper<TResult> For(Type requestType) => Cache.GetOrAdd(requestType, Create);
+    public static RequestHandlerWrapper<TResult> For(Type requestType) => _cache.GetOrAdd(requestType, Create);
 
     private static RequestHandlerWrapper<TResult> Create(Type requestType)
     {

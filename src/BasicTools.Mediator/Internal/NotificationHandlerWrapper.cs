@@ -11,14 +11,14 @@ namespace BasicTools.Mediator.Internal;
 /// </remarks>
 internal abstract class NotificationHandlerWrapper
 {
-    private static readonly ConcurrentDictionary<Type, NotificationHandlerWrapper> Cache = new();
+    private static readonly ConcurrentDictionary<Type, NotificationHandlerWrapper> _cache = new();
 
     /// <summary>Resolves every handler for the notification and hands them to <paramref name="publisher"/>.</summary>
     public abstract Task Handle(INotification notification, IServiceProvider services, INotificationPublisher publisher, CancellationToken cancellationToken);
 
     /// <summary>Returns the cached wrapper for <paramref name="notificationType"/>, creating it on first use.</summary>
     public static NotificationHandlerWrapper For(Type notificationType) =>
-        Cache.GetOrAdd(notificationType, static type =>
+        _cache.GetOrAdd(notificationType, static type =>
             (NotificationHandlerWrapper)Activator.CreateInstance(typeof(NotificationHandlerWrapper<>).MakeGenericType(type))!);
 }
 
