@@ -159,3 +159,72 @@ If no handler is registered, the mediator throws `HandlerNotFoundException` befo
 runs. Otherwise a missing registration would only show up if the innermost behavior called `next`,
 and a caching behavior could hide it entirely until the cache was cold. The small cost is that the
 handler is created even when a behavior short-circuits.
+
+## Step 3: dependency injection and assembly scanning
+
+### One call to set everything up
+
+```csharp
+builder.Services.AddSimpleMediator(options =>
+{
+    options.RegisterServicesFromAssemblyContaining<Program>();
+    options.AddOpenBehavior(typeof(LoggingBehavior<,>));
+    options.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+```
+
+There is also `AddSimpleMediator(params Assembly[])` for the common case with no behaviors.
+
+The extension method lives in the `Microsoft.Extensions.DependencyInjection` namespace. That is a
+convention most libraries follow (EF Core, logging, options) so the method appears in IntelliSense
+wherever services are configured, without an extra `using`.
+
+The library depends only on `Microsoft.Extensions.DependencyInjection.Abstractions`, which defines
+`IServiceCollection` but contains no container. Apps bring the container; a library should not.
+
+### What scanning registers, and what it does not
+
+Scanning looks at every concrete class in the given assemblies (public or internal) and registers
+it for each handler interface it implements: `ICommandHandler<>`, `ICommandHandler<,>`,
+`IQueryHandler<,>` and `INotificationHandler<>`.
+
+- **Abstract classes and open generic classes are skipped.** The container cannot build
+  `Handler<T>` without knowing `T`.
+- **Two classes handling the same command or query is an error at startup.** A request has exactly
+  one handler, and silently picking one ("last registration wins") would hide a bug until runtime.
+- **Notification handlers can repeat**, since many handlers per notification is the point.
+- **Pipeline behaviors are not scanned.** This deliberately differs from the original plan.
+  Behavior order matters (validation before a transaction, logging around everything), and the
+  order classes come back from reflection is not something to rely on. So behaviors are added
+  explicitly with `AddOpenBehavior` / `AddBehavior`, and run in the order they are added.
+
+### Safe to call twice, and respects manual registrations
+
+Every registration uses the `TryAdd` family. `TryAdd` skips a service that is already registered,
+so a handler you register by hand before calling `AddSimpleMediator` wins over the scanned one.
+`TryAddEnumerable` (for notification handlers and behaviors) allows many implementations of one
+interface but skips an exact duplicate. Calling `AddSimpleMediator` twice, which happens easily
+when several modules each call it, therefore registers nothing twice.
+
+### Lifetimes
+
+`options.Lifetime` (default transient) applies to the mediator, handlers and behaviors.
+Transient is the safest default: a transient handler may depend on a scoped `DbContext`, while a
+singleton that does so is rejected by the container's scope validation.
+
+The `Lifetime` is read when services are registered, not when `AddOpenBehavior` is called, so the
+order of lines inside the configure callback does not matter.
+
+`Mediator` is registered once as itself, and `IMediator`, `ISender` and `IPublisher` are forwarded
+to it with factory registrations. With a scoped lifetime, all three resolve to the same instance
+within a scope instead of three separate ones.
+
+The notification publisher is registered as a singleton, since strategies are stateless.
+
+### Testing the scanner
+
+The scanning loop takes a plain list of types (an `internal` method, visible to the tests through
+`InternalsVisibleTo`), so tests can hand it two handlers for the same query without putting a
+duplicate in a real assembly, which would break every other scan. The tests also build the
+container with `ValidateOnBuild` and `ValidateScopes`, which check that every registration can
+actually be constructed and that no singleton captures a scoped service.

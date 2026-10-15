@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Only the abstractions package: it defines IServiceCollection without pulling in a container implementation. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Lets the test project see internal types such as the handler wrappers. -->
     <InternalsVisibleTo Include="SimpleMediator.Tests" />
   </ItemGroup>
