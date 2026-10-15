@@ -161,7 +161,7 @@ once does not register anything twice.
 
 ## Design
 
-[docs/design-notes.md](docs/design-notes.md) explains why the library is built the way it is.
+[Documents/design-notes.md](Documents/design-notes.md) explains why the library is built the way it is.
 
 ## License
 
