@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Publishes notifications to every handler registered for them.

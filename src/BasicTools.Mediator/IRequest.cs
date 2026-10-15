@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Common base for every message that is handled by exactly one handler and produces a result.

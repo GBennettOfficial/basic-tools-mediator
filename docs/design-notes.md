@@ -1,6 +1,6 @@
 # Design notes
 
-These notes explain why SimpleMediator is built the way it is. Each step of the plan adds a section.
+These notes explain why BasicTools.Mediator is built the way it is. Each step of the plan adds a section.
 
 ## Step 1: core contracts and dispatch
 
@@ -12,7 +12,7 @@ CQRS (Command Query Responsibility Segregation) splits the operations of a syste
 - **Queries** read state (`GetUser`) and must not change anything.
 
 MediatR uses one `IRequest<T>` for both, so nothing stops a "query" from writing to the database.
-SimpleMediator gives each kind its own interface (`ICommand`, `ICommand<TResult>`, `IQuery<TResult>`)
+BasicTools.Mediator gives each kind its own interface (`ICommand`, `ICommand<TResult>`, `IQuery<TResult>`)
 and its own handler interface. The benefits:
 
 - The intent of a message is visible from its type.
@@ -34,7 +34,7 @@ separate `ICommandHandler<TCommand>` that returns a plain `Task`. The mediator a
 
 ### Invariant result types
 
-MediatR declares `IRequest<out TResponse>` (covariant). SimpleMediator leaves the result type
+MediatR declares `IRequest<out TResponse>` (covariant). BasicTools.Mediator leaves the result type
 invariant. Covariance would make a `GetName : IQuery<string>` also count as an `IQuery<object>`,
 so `Query<object>(new GetName())` would compile and then fail at runtime looking for an
 `IQueryHandler<GetName, object>`. Invariance turns that mistake into a compile error.
@@ -165,7 +165,7 @@ handler is created even when a behavior short-circuits.
 ### One call to set everything up
 
 ```csharp
-builder.Services.AddSimpleMediator(options =>
+builder.Services.AddMediator(options =>
 {
     options.RegisterServicesFromAssemblyContaining<Program>();
     options.AddOpenBehavior(typeof(LoggingBehavior<,>));
@@ -173,7 +173,7 @@ builder.Services.AddSimpleMediator(options =>
 });
 ```
 
-There is also `AddSimpleMediator(params Assembly[])` for the common case with no behaviors.
+There is also `AddMediator(params Assembly[])` for the common case with no behaviors.
 
 The extension method lives in the `Microsoft.Extensions.DependencyInjection` namespace. That is a
 convention most libraries follow (EF Core, logging, options) so the method appears in IntelliSense
@@ -201,9 +201,9 @@ it for each handler interface it implements: `ICommandHandler<>`, `ICommandHandl
 ### Safe to call twice, and respects manual registrations
 
 Every registration uses the `TryAdd` family. `TryAdd` skips a service that is already registered,
-so a handler you register by hand before calling `AddSimpleMediator` wins over the scanned one.
+so a handler you register by hand before calling `AddMediator` wins over the scanned one.
 `TryAddEnumerable` (for notification handlers and behaviors) allows many implementations of one
-interface but skips an exact duplicate. Calling `AddSimpleMediator` twice, which happens easily
+interface but skips an exact duplicate. Calling `AddMediator` twice, which happens easily
 when several modules each call it, therefore registers nothing twice.
 
 ### Lifetimes
@@ -233,14 +233,20 @@ actually be constructed and that no singleton captures a scoped service.
 
 ### Package identity
 
-The package id is `GBennett.SimpleMediator` because `SimpleMediator` and `BasicMediator` are
-already taken on nuget.org. An owner prefix is common practice, and nuget.org lets you reserve a
-prefix (such as `GBennett.`) so nobody else can publish under it. The C# namespace stays
-`SimpleMediator`; package id and namespace do not have to match.
+The package id, assembly and root namespace are all `BasicTools.Mediator`, so what people install
+matches what they write in `using` directives. The `BasicTools.` prefix leaves room for sibling
+packages later, and nuget.org lets you reserve a prefix (`BasicTools.*`) so nobody else can publish
+under it.
+
+One consequence: the namespace `BasicTools.Mediator` contains a class named `Mediator`. Code inside
+the `BasicTools.Mediator` namespace (including the tests) finds the class as expected, but code that
+lives in some other `BasicTools.*` namespace would see `Mediator` as the namespace first. Users
+rarely refer to the `Mediator` class directly (they inject `IMediator`), so this is an acceptable
+trade for a clear package name.
 
 ### What goes in the package
 
-- `SimpleMediator.dll` and `SimpleMediator.xml`. The XML file holds the doc comments, which is
+- `BasicTools.Mediator.dll` and `BasicTools.Mediator.xml`. The XML file holds the doc comments, which is
   what makes them appear in IntelliSense for people using the package.
 - `README.md`, shown on the nuget.org page (`PackageReadmeFile`).
 - A separate `.snupkg` symbols package. Together with Source Link, which the .NET SDK enables
@@ -262,5 +268,5 @@ Making the git tag the single source of truth for the version means the version 
 file never has to be edited for a release, and a published version always matches a tag in the
 repository. `--skip-duplicate` makes re-running a release job harmless.
 
-To publish: create an API key on nuget.org scoped to `GBennett.SimpleMediator`, add it as the
+To publish: create an API key on nuget.org scoped to `BasicTools.Mediator`, add it as the
 `NUGET_API_KEY` secret in the GitHub repository settings, then `git tag v0.1.0 && git push --tags`.

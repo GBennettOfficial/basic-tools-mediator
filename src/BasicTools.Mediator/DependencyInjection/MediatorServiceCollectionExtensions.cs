@@ -1,15 +1,15 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using SimpleMediator;
+using BasicTools.Mediator;
 
 // Extension methods for IServiceCollection conventionally live in this namespace, so they show up
 // in IntelliSense wherever services are configured without needing an extra using directive.
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// Registers SimpleMediator and the handlers found by assembly scanning.
+/// Registers BasicTools.Mediator and the handlers found by assembly scanning.
 /// </summary>
-public static class SimpleMediatorServiceCollectionExtensions
+public static class MediatorServiceCollectionExtensions
 {
     // The handler interfaces scanning looks for. Command and query handlers must be unique per
     // request; notification handlers may have many implementations.
@@ -28,8 +28,8 @@ public static class SimpleMediatorServiceCollectionExtensions
     /// <param name="services">The service collection to add to.</param>
     /// <param name="assemblies">The assemblies to scan for handlers.</param>
     /// <returns>The same service collection, so calls can be chained.</returns>
-    public static IServiceCollection AddSimpleMediator(this IServiceCollection services, params Assembly[] assemblies) =>
-        services.AddSimpleMediator(options => options.RegisterServicesFromAssemblies(assemblies));
+    public static IServiceCollection AddMediator(this IServiceCollection services, params Assembly[] assemblies) =>
+        services.AddMediator(options => options.RegisterServicesFromAssemblies(assemblies));
 
     /// <summary>
     /// Registers the mediator, the handlers found in the configured assemblies, and the configured
@@ -46,12 +46,12 @@ public static class SimpleMediatorServiceCollectionExtensions
     /// Safe to call more than once: every registration uses the <c>TryAdd</c> family, so nothing
     /// is registered twice and handlers you registered yourself beforehand are kept.
     /// </remarks>
-    public static IServiceCollection AddSimpleMediator(this IServiceCollection services, Action<SimpleMediatorOptions> configure)
+    public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var options = new SimpleMediatorOptions();
+        var options = new MediatorOptions();
         configure(options);
 
         if (options.Assemblies.Count == 0)
@@ -75,7 +75,7 @@ public static class SimpleMediatorServiceCollectionExtensions
         return services;
     }
 
-    private static void RegisterMediator(IServiceCollection services, SimpleMediatorOptions options)
+    private static void RegisterMediator(IServiceCollection services, MediatorOptions options)
     {
         services.TryAddSingleton(options.NotificationPublisher);
 

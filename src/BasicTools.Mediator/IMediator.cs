@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Combines <see cref="ISender"/> and <see cref="IPublisher"/> for code that needs both.

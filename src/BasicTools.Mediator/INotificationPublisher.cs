@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Strategy that decides how the handlers of a published notification are run.

@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Continues the pipeline: calls the next behavior, or the handler when no behaviors remain.

@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Handles a command of type <typeparamref name="TCommand"/> and returns a result.

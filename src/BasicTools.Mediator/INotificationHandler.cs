@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Reacts to a notification of type <typeparamref name="TNotification"/>.

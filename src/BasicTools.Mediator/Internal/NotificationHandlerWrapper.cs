@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace SimpleMediator.Internal;
+namespace BasicTools.Mediator.Internal;
 
 /// <summary>
 /// Resolves all handlers for a notification whose concrete type is only known at runtime.

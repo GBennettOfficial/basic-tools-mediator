@@ -1,14 +1,14 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
-/// Configures what <c>AddSimpleMediator</c> registers in the service collection.
+/// Configures what <c>AddMediator</c> registers in the service collection.
 /// </summary>
 /// <example>
 /// <code>
-/// services.AddSimpleMediator(options =>
+/// services.AddMediator(options =>
 /// {
 ///     options.RegisterServicesFromAssemblyContaining&lt;Program&gt;();
 ///     options.AddOpenBehavior(typeof(LoggingBehavior&lt;,&gt;));
@@ -16,7 +16,7 @@ namespace SimpleMediator;
 /// });
 /// </code>
 /// </example>
-public sealed class SimpleMediatorOptions
+public sealed class MediatorOptions
 {
     private readonly List<Assembly> _assemblies = [];
     private readonly List<(Type Service, Type Implementation)> _behaviors = [];
@@ -48,7 +48,7 @@ public sealed class SimpleMediatorOptions
     /// <summary>Scans the given assemblies for command, query and notification handlers.</summary>
     /// <param name="assemblies">The assemblies to scan.</param>
     /// <returns>These options, so calls can be chained.</returns>
-    public SimpleMediatorOptions RegisterServicesFromAssemblies(params Assembly[] assemblies)
+    public MediatorOptions RegisterServicesFromAssemblies(params Assembly[] assemblies)
     {
         ArgumentNullException.ThrowIfNull(assemblies);
 
@@ -67,7 +67,7 @@ public sealed class SimpleMediatorOptions
     /// <summary>Scans the assembly that defines <typeparamref name="T"/> for handlers.</summary>
     /// <typeparam name="T">Any type in the assembly to scan, commonly <c>Program</c>.</typeparam>
     /// <returns>These options, so calls can be chained.</returns>
-    public SimpleMediatorOptions RegisterServicesFromAssemblyContaining<T>() =>
+    public MediatorOptions RegisterServicesFromAssemblyContaining<T>() =>
         RegisterServicesFromAssemblies(typeof(T).Assembly);
 
     /// <summary>
@@ -80,7 +80,7 @@ public sealed class SimpleMediatorOptions
     /// </param>
     /// <returns>These options, so calls can be chained.</returns>
     /// <exception cref="ArgumentException">The type is not an open generic pipeline behavior.</exception>
-    public SimpleMediatorOptions AddOpenBehavior(Type openBehaviorType)
+    public MediatorOptions AddOpenBehavior(Type openBehaviorType)
     {
         ArgumentNullException.ThrowIfNull(openBehaviorType);
 
@@ -105,7 +105,7 @@ public sealed class SimpleMediatorOptions
     /// <typeparam name="TService">The closed <see cref="IPipelineBehavior{TRequest, TResult}"/> interface.</typeparam>
     /// <typeparam name="TImplementation">The behavior class.</typeparam>
     /// <returns>These options, so calls can be chained.</returns>
-    public SimpleMediatorOptions AddBehavior<TService, TImplementation>()
+    public MediatorOptions AddBehavior<TService, TImplementation>()
         where TService : class
         where TImplementation : class, TService
     {

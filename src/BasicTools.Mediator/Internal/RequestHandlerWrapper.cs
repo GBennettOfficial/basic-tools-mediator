@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace SimpleMediator.Internal;
+namespace BasicTools.Mediator.Internal;
 
 /// <summary>
 /// Bridges from a request whose concrete type is only known at runtime to a strongly typed handler.

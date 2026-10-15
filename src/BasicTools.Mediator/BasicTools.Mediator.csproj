@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>SimpleMediator</RootNamespace>
-    <!-- Produces SimpleMediator.xml so the doc comments show up in IntelliSense for package users. -->
+    <RootNamespace>BasicTools.Mediator</RootNamespace>
+    <!-- Produces BasicTools.Mediator.xml so the doc comments show up in IntelliSense for package users. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- A library should build cleanly; this also turns a missing public doc comment (CS1591) into an error. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -10,8 +10,7 @@
 
   <!-- NuGet package metadata. Everything here shows on the package's nuget.org page. -->
   <PropertyGroup>
-    <!-- "SimpleMediator" and "BasicMediator" are already taken on nuget.org, so the id carries an owner prefix. -->
-    <PackageId>GBennett.SimpleMediator</PackageId>
+    <PackageId>BasicTools.Mediator</PackageId>
     <!-- Overridden by the release workflow from the git tag, e.g. tag v1.2.0 packs version 1.2.0. -->
     <Version>0.1.0</Version>
     <Authors>GBennettOfficial</Authors>
@@ -43,7 +42,7 @@
 
   <ItemGroup>
     <!-- Lets the test project see internal types such as the handler wrappers. -->
-    <InternalsVisibleTo Include="SimpleMediator.Tests" />
+    <InternalsVisibleTo Include="BasicTools.Mediator.Tests" />
   </ItemGroup>
 
 </Project>

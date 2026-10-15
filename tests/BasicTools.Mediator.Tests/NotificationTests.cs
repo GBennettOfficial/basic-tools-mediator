@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace SimpleMediator.Tests;
+namespace BasicTools.Mediator.Tests;
 
 public class NotificationTests
 {

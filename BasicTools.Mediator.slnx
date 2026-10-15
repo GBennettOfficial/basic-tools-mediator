@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BasicTools.Mediator/BasicTools.Mediator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BasicTools.Mediator.Tests/BasicTools.Mediator.Tests.csproj" />
+  </Folder>
+</Solution>

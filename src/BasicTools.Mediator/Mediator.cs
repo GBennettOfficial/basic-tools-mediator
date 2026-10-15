@@ -1,6 +1,6 @@
-using SimpleMediator.Internal;
+using BasicTools.Mediator.Internal;
 
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Default implementation of <see cref="IMediator"/>. Resolves handlers and pipeline behaviors

@@ -1,4 +1,4 @@
-# SimpleMediator
+# BasicTools.Mediator
 
 A small mediator for .NET built around CQRS. It routes **commands** and **queries** to a single
 handler, **publishes notifications** to any number of handlers, wraps requests in **pipeline
@@ -9,7 +9,7 @@ It is inspired by [MediatR](https://github.com/jbogard/MediatR) but keeps comman
 separate types, so the intent of every message is visible from its type.
 
 ```
-dotnet add package GBennett.SimpleMediator
+dotnet add package BasicTools.Mediator
 ```
 
 Requires .NET 10.
@@ -17,7 +17,7 @@ Requires .NET 10.
 ## Setup
 
 ```csharp
-builder.Services.AddSimpleMediator(options =>
+builder.Services.AddMediator(options =>
 {
     options.RegisterServicesFromAssemblyContaining<Program>();
 
@@ -27,7 +27,7 @@ builder.Services.AddSimpleMediator(options =>
 });
 ```
 
-Or, with no options: `builder.Services.AddSimpleMediator(typeof(Program).Assembly);`
+Or, with no options: `builder.Services.AddMediator(typeof(Program).Assembly);`
 
 Inject `ISender` to send commands and queries, `IPublisher` to publish notifications, or
 `IMediator` for both.
@@ -156,7 +156,7 @@ options.AddBehavior<IPipelineBehavior<GetUser, UserDto?>, CacheUserBehavior>();
 | `Lifetime` | `Transient` | Lifetime of the mediator, handlers and behaviors |
 | `NotificationPublisher` | `SequentialNotificationPublisher` | How notification handlers are run |
 
-Handlers you register yourself before calling `AddSimpleMediator` are kept, and calling it more than
+Handlers you register yourself before calling `AddMediator` are kept, and calling it more than
 once does not register anything twice.
 
 ## Design

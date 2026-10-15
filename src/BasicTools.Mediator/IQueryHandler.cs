@@ -1,4 +1,4 @@
-namespace SimpleMediator;
+namespace BasicTools.Mediator;
 
 /// <summary>
 /// Handles a query of type <typeparamref name="TQuery"/> and returns its data.

@@ -1,24 +1,24 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace SimpleMediator.Tests;
+namespace BasicTools.Mediator.Tests;
 
 public class DependencyInjectionTests
 {
     // Scanning the test assembly picks up the handlers of every test class, some of which need a
     // List<string> for logging, so the helper always registers one.
-    private static ServiceProvider Build(Action<SimpleMediatorOptions> configure, Action<IServiceCollection>? extra = null)
+    private static ServiceProvider Build(Action<MediatorOptions> configure, Action<IServiceCollection>? extra = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<List<string>>();
         extra?.Invoke(services);
-        services.AddSimpleMediator(configure);
+        services.AddMediator(configure);
 
         // ValidateOnBuild checks every registration can be constructed; ValidateScopes catches a
         // singleton depending on a scoped service. Both catch registration mistakes early.
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 
-    private static void ScanTestAssembly(SimpleMediatorOptions options) =>
+    private static void ScanTestAssembly(MediatorOptions options) =>
         options.RegisterServicesFromAssemblyContaining<DependencyInjectionTests>();
 
     [Fact]
@@ -42,7 +42,7 @@ public class DependencyInjectionTests
     {
         var services = new ServiceCollection();
 
-        services.AddSimpleMediator(typeof(DependencyInjectionTests).Assembly);
+        services.AddMediator(typeof(DependencyInjectionTests).Assembly);
 
         Assert.Contains(services, d => d.ServiceType == typeof(IMediator));
         Assert.Contains(services, d => d.ServiceType == typeof(IQueryHandler<Ping, string>) && d.ImplementationType == typeof(PingHandler));
@@ -69,7 +69,7 @@ public class DependencyInjectionTests
     {
         var services = new ServiceCollection();
 
-        services.AddSimpleMediator(ScanTestAssembly);
+        services.AddMediator(ScanTestAssembly);
 
         Assert.DoesNotContain(services, d => d.ServiceType == typeof(IPipelineBehavior<,>));
     }
@@ -79,7 +79,7 @@ public class DependencyInjectionTests
     {
         var services = new ServiceCollection();
 
-        services.AddSimpleMediator(options =>
+        services.AddMediator(options =>
         {
             ScanTestAssembly(options);
             options.AddOpenBehavior(typeof(TagBehavior<,>));
@@ -108,9 +108,9 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public async Task Calling_AddSimpleMediator_twice_does_not_register_anything_twice()
+    public async Task Calling_AddMediator_twice_does_not_register_anything_twice()
     {
-        using var provider = Build(ScanTestAssembly, services => services.AddSimpleMediator(options =>
+        using var provider = Build(ScanTestAssembly, services => services.AddMediator(options =>
         {
             ScanTestAssembly(options);
             options.AddOpenBehavior(typeof(TagBehavior<,>));
@@ -131,7 +131,7 @@ public class DependencyInjectionTests
         var services = new ServiceCollection();
         services.AddTransient<IQueryHandler<Ping, string>, AlternativePingHandler<int>>();
 
-        services.AddSimpleMediator(ScanTestAssembly);
+        services.AddMediator(ScanTestAssembly);
 
         Assert.Equal(typeof(AlternativePingHandler<int>), services.Single(d => d.ServiceType == typeof(IQueryHandler<Ping, string>)).ImplementationType);
     }
@@ -157,7 +157,7 @@ public class DependencyInjectionTests
         var services = new ServiceCollection();
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SimpleMediatorServiceCollectionExtensions.RegisterHandlers(
+            MediatorServiceCollectionExtensions.RegisterHandlers(
                 services, [typeof(PingHandler), typeof(AlternativePingHandler<int>)], ServiceLifetime.Transient));
 
         Assert.Contains("AlternativePingHandler", ex.Message);
@@ -168,7 +168,7 @@ public class DependencyInjectionTests
     {
         var services = new ServiceCollection();
 
-        SimpleMediatorServiceCollectionExtensions.RegisterHandlers(
+        MediatorServiceCollectionExtensions.RegisterHandlers(
             services, [typeof(AbstractPingHandler), typeof(GenericCommandHandler<>)], ServiceLifetime.Transient);
 
         Assert.Empty(services);
@@ -179,7 +179,7 @@ public class DependencyInjectionTests
     {
         var services = new ServiceCollection();
 
-        Assert.Throws<ArgumentException>(() => services.AddSimpleMediator(_ => { }));
+        Assert.Throws<ArgumentException>(() => services.AddMediator(_ => { }));
     }
 
     [Theory]
@@ -188,7 +188,7 @@ public class DependencyInjectionTests
     [InlineData(typeof(List<>))]
     public void AddOpenBehavior_rejects_types_that_are_not_open_generic_behaviors(Type type)
     {
-        var options = new SimpleMediatorOptions();
+        var options = new MediatorOptions();
 
         Assert.Throws<ArgumentException>(() => options.AddOpenBehavior(type));
     }
