@@ -24,7 +24,7 @@ internal abstract class RequestHandlerWrapper<TResult>
 {
     private static readonly ConcurrentDictionary<Type, RequestHandlerWrapper<TResult>> Cache = new();
 
-    /// <summary>Resolves the handler from <paramref name="services"/> and invokes it.</summary>
+    /// <summary>Runs the request through its pipeline behaviors and handler.</summary>
     public abstract Task<TResult> Handle(IRequest<TResult> request, IServiceProvider services, CancellationToken cancellationToken);
 
     /// <summary>Returns the cached wrapper for <paramref name="requestType"/>, creating it on first use.</summary>
@@ -74,36 +74,77 @@ internal abstract class RequestHandlerWrapper<TResult>
         ?? throw new HandlerNotFoundException(requestType, typeof(THandler));
 }
 
+/// <summary>
+/// Builds the pipeline for one concrete request type: every registered
+/// <see cref="IPipelineBehavior{TRequest, TResult}"/> wrapped around the handler.
+/// </summary>
+/// <remarks>
+/// Subclasses only decide which handler interface to resolve. Composing the behaviors is the same
+/// for commands and queries, so it lives here once.
+/// </remarks>
+internal abstract class RequestHandlerWrapper<TRequest, TResult> : RequestHandlerWrapper<TResult>
+    where TRequest : IRequest<TResult>
+{
+    public sealed override Task<TResult> Handle(IRequest<TResult> request, IServiceProvider services, CancellationToken cancellationToken)
+    {
+        var typedRequest = (TRequest)request;
+
+        // Resolve the handler before running any behavior, so a missing registration is reported
+        // straight away rather than only when (and if) the last behavior calls next.
+        var invokeHandler = ResolveHandler(services);
+
+        RequestHandlerDelegate<TResult> pipeline = token => invokeHandler(typedRequest, token);
+
+        var behaviors = services.GetService(typeof(IEnumerable<IPipelineBehavior<TRequest, TResult>>))
+            as IEnumerable<IPipelineBehavior<TRequest, TResult>>;
+
+        if (behaviors is not null)
+        {
+            // Wrap from the inside out: the last registered behavior sits closest to the handler,
+            // so the first registered one ends up outermost and runs first.
+            var ordered = behaviors as IPipelineBehavior<TRequest, TResult>[] ?? behaviors.ToArray();
+            for (var i = ordered.Length - 1; i >= 0; i--)
+            {
+                var behavior = ordered[i];
+                var next = pipeline;
+                pipeline = token => behavior.Handle(typedRequest, next, token);
+            }
+        }
+
+        return pipeline(cancellationToken);
+    }
+
+    /// <summary>Resolves the handler and returns a function that invokes it.</summary>
+    protected abstract Func<TRequest, CancellationToken, Task<TResult>> ResolveHandler(IServiceProvider services);
+}
+
 /// <summary>Dispatches a command that returns <typeparamref name="TResult"/>.</summary>
-internal sealed class CommandHandlerWrapper<TCommand, TResult> : RequestHandlerWrapper<TResult>
+internal sealed class CommandHandlerWrapper<TCommand, TResult> : RequestHandlerWrapper<TCommand, TResult>
     where TCommand : ICommand<TResult>
 {
-    public override Task<TResult> Handle(IRequest<TResult> request, IServiceProvider services, CancellationToken cancellationToken)
-    {
-        var handler = GetHandler<ICommandHandler<TCommand, TResult>>(services, typeof(TCommand));
-        return handler.Handle((TCommand)request, cancellationToken);
-    }
+    protected override Func<TCommand, CancellationToken, Task<TResult>> ResolveHandler(IServiceProvider services) =>
+        GetHandler<ICommandHandler<TCommand, TResult>>(services, typeof(TCommand)).Handle;
 }
 
 /// <summary>Dispatches a command that returns nothing, adapting its <see cref="Task"/> to <c>Task&lt;Unit&gt;</c>.</summary>
-internal sealed class CommandHandlerWrapper<TCommand> : RequestHandlerWrapper<Unit>
+internal sealed class CommandHandlerWrapper<TCommand> : RequestHandlerWrapper<TCommand, Unit>
     where TCommand : ICommand
 {
-    public override async Task<Unit> Handle(IRequest<Unit> request, IServiceProvider services, CancellationToken cancellationToken)
+    protected override Func<TCommand, CancellationToken, Task<Unit>> ResolveHandler(IServiceProvider services)
     {
         var handler = GetHandler<ICommandHandler<TCommand>>(services, typeof(TCommand));
-        await handler.Handle((TCommand)request, cancellationToken).ConfigureAwait(false);
-        return Unit.Value;
+        return async (command, token) =>
+        {
+            await handler.Handle(command, token).ConfigureAwait(false);
+            return Unit.Value;
+        };
     }
 }
 
 /// <summary>Dispatches a query that returns <typeparamref name="TResult"/>.</summary>
-internal sealed class QueryHandlerWrapper<TQuery, TResult> : RequestHandlerWrapper<TResult>
+internal sealed class QueryHandlerWrapper<TQuery, TResult> : RequestHandlerWrapper<TQuery, TResult>
     where TQuery : IQuery<TResult>
 {
-    public override Task<TResult> Handle(IRequest<TResult> request, IServiceProvider services, CancellationToken cancellationToken)
-    {
-        var handler = GetHandler<IQueryHandler<TQuery, TResult>>(services, typeof(TQuery));
-        return handler.Handle((TQuery)request, cancellationToken);
-    }
+    protected override Func<TQuery, CancellationToken, Task<TResult>> ResolveHandler(IServiceProvider services) =>
+        GetHandler<IQueryHandler<TQuery, TResult>>(services, typeof(TQuery)).Handle;
 }

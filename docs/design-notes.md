@@ -77,3 +77,85 @@ closed generic type, there is one dictionary per result type, and entries never 
 - `Directory.Packages.props` turns on central package management so versions live in one place.
 - The library sets `GenerateDocumentationFile` and `TreatWarningsAsErrors`, so a public member
   without a doc comment fails the build.
+
+## Step 2: notifications and pipeline behaviors
+
+### Notifications are events, not requests
+
+A notification (`INotification`) announces something that already happened, such as
+`UserRegistered`. It differs from a command or query in three ways:
+
+- It can have **any number of handlers**, including none. Publishing with no handlers is not an
+  error, because the publisher should not need to know who is listening.
+- It has **no result**. Handlers react; they do not answer.
+- It goes through `IPublisher.Publish`, not `ISender`, so call sites make the difference obvious.
+
+`IMediator` combines `ISender` and `IPublisher` for convenience, but injecting the narrower
+interface documents what a class actually does.
+
+`Publish` dispatches on the notification's **runtime** type (`notification.GetType()`), using the
+same cached-wrapper trick as requests. So code that holds a list of `INotification` (for example
+domain events collected on an entity) can publish each one and still reach the right handlers.
+
+### Publishing strategy is pluggable
+
+How several handlers should run is a real trade-off, so it is a strategy (`INotificationPublisher`)
+rather than hard-coded:
+
+- `SequentialNotificationPublisher` (default) awaits handlers one at a time in registration order.
+  The first exception stops the rest. Handlers never overlap, so they can share scoped services
+  such as an EF Core `DbContext`, which is not thread-safe.
+- `ParallelNotificationPublisher` starts all handlers and waits for all of them. Every handler runs
+  even if one fails. `await Task.WhenAll(...)` only rethrows the *first* exception, so when several
+  fail it throws an `AggregateException` with all of them. It also turns a handler that throws
+  synchronously (a non-`async` method) into a faulted task, so one bad handler cannot stop the
+  others from starting.
+
+Each handler reaches the strategy as a `NotificationHandlerExecutor`: the handler instance plus a
+callback. The strategy can run handlers without knowing the notification's generic type, and can
+still see which handler it is running (useful for logging).
+
+### Pipeline behaviors are middleware for requests
+
+`IPipelineBehavior<TRequest, TResult>` wraps command and query handling, exactly like ASP.NET Core
+middleware wraps HTTP requests. Each behavior gets the request and a `next` delegate:
+
+```csharp
+public async Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken ct)
+{
+    // before the handler
+    var result = await next(ct);
+    // after the handler
+    return result;
+}
+```
+
+A behavior can run code before and after, change the result, or never call `next` (a validation
+behavior that throws, or a cache that returns a stored value). The first registered behavior is the
+outermost. The dispatcher builds the chain from the inside out: it starts with "call the handler",
+then wraps it with the last behavior, then the one before, and so on.
+
+The `next` delegate takes a `CancellationToken` so a behavior can pass on a different one, for
+example a linked token that adds a timeout.
+
+### Targeting commands or queries with generic constraints
+
+Separating commands and queries in step 1 pays off here. A behavior that should only wrap commands
+(say, a database transaction) just adds a constraint:
+
+```csharp
+public class TransactionBehavior<TRequest, TResult> : IPipelineBehavior<TRequest, TResult>
+    where TRequest : ICommand<TResult>
+```
+
+When it is registered as an open generic, Microsoft's container checks the constraint and leaves
+the behavior out for queries. No marker attributes or `if (request is ICommand)` checks are needed.
+A behavior can also target a single request type by implementing, say,
+`IPipelineBehavior<GetOrder, string>` directly.
+
+### The handler is resolved before the behaviors run
+
+If no handler is registered, the mediator throws `HandlerNotFoundException` before any behavior
+runs. Otherwise a missing registration would only show up if the innermost behavior called `next`,
+and a caching behavior could hide it entirely until the cache was cold. The small cost is that the
+handler is created even when a behavior short-circuits.
