@@ -228,3 +228,39 @@ The scanning loop takes a plain list of types (an `internal` method, visible to 
 duplicate in a real assembly, which would break every other scan. The tests also build the
 container with `ValidateOnBuild` and `ValidateScopes`, which check that every registration can
 actually be constructed and that no singleton captures a scoped service.
+
+## Step 4: packaging and CI
+
+### Package identity
+
+The package id is `GBennett.SimpleMediator` because `SimpleMediator` and `BasicMediator` are
+already taken on nuget.org. An owner prefix is common practice, and nuget.org lets you reserve a
+prefix (such as `GBennett.`) so nobody else can publish under it. The C# namespace stays
+`SimpleMediator`; package id and namespace do not have to match.
+
+### What goes in the package
+
+- `SimpleMediator.dll` and `SimpleMediator.xml`. The XML file holds the doc comments, which is
+  what makes them appear in IntelliSense for people using the package.
+- `README.md`, shown on the nuget.org page (`PackageReadmeFile`).
+- A separate `.snupkg` symbols package. Together with Source Link, which the .NET SDK enables
+  automatically for GitHub repositories, users can step into the library's source while debugging.
+- License metadata as an SPDX expression (`MIT`) rather than a file, which nuget.org prefers.
+
+`ContinuousIntegrationBuild` is switched on only under GitHub Actions. It makes builds
+deterministic (file paths are normalised), so the same commit always produces the same package.
+It is off locally because it would make local debugging paths less useful.
+
+### CI and releases
+
+- `ci.yml` runs on every push to `main` and every pull request: restore, build, test, pack, and
+  upload the package as a build artifact. Nothing is published.
+- `release.yml` runs only when a tag like `v1.0.0` is pushed. It reads the version from the tag,
+  tests, packs and pushes to nuget.org using a repository secret named `NUGET_API_KEY`.
+
+Making the git tag the single source of truth for the version means the version in the project
+file never has to be edited for a release, and a published version always matches a tag in the
+repository. `--skip-duplicate` makes re-running a release job harmless.
+
+To publish: create an API key on nuget.org scoped to `GBennett.SimpleMediator`, add it as the
+`NUGET_API_KEY` secret in the GitHub repository settings, then `git tag v0.1.0 && git push --tags`.

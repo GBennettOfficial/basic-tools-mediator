@@ -8,6 +8,34 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- NuGet package metadata. Everything here shows on the package's nuget.org page. -->
+  <PropertyGroup>
+    <!-- "SimpleMediator" and "BasicMediator" are already taken on nuget.org, so the id carries an owner prefix. -->
+    <PackageId>GBennett.SimpleMediator</PackageId>
+    <!-- Overridden by the release workflow from the git tag, e.g. tag v1.2.0 packs version 1.2.0. -->
+    <Version>0.1.0</Version>
+    <Authors>GBennettOfficial</Authors>
+    <Description>A small, dependency-light mediator for CQRS: separate commands and queries, notifications with pluggable publishing strategies, pipeline behaviors, and assembly scanning for Microsoft.Extensions.DependencyInjection.</Description>
+    <PackageTags>mediator;cqrs;commands;queries;notifications;pipeline;dependency-injection</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/GBennettOfficial/basic-mediator</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/GBennettOfficial/basic-mediator</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- A separate .snupkg with debug symbols, so users can step into the library while debugging. -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- On CI, make the build reproducible: identical source produces an identical package. -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Only the abstractions package: it defines IServiceCollection without pulling in a container implementation. -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
