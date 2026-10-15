@@ -1,0 +1,33 @@
+# Top-most EditorConfig file; stop searching parent folders
+root = true
+
+# Applies to all files
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# files only
+[*.cs]
+# Prefer 'var' when the type is obvious
+csharp_style_var_when_type_is_apparent = true:suggestion
+
+# Require braces on if/else, even for one-liners
+csharp_prefer_braces = true:warning
+
+# Use file-scoped namespaces
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Naming: private fields should be _camelCase
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# Turn a specific analyzer rule up or down
+dotnet_diagnostic.CA1822.severity = none
